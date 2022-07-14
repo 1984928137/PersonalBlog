@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory, RouteLocationRaw, RouteParamValueRaw, RouteRecordRaw, useRouter } from 'vue-router'
-import { getRouter } from "../axios/api";
+import { exRequest, RouterAPI } from "../axios/api";
 const modules = import.meta.glob('../components/**/**.vue')
 
 
@@ -12,10 +12,18 @@ const route = [
         component: () => import("../components/View/HomeView.vue"),
         // meta: { qss: false },
         props: true,
-        // redirect: '/productlist',
-        
+        redirect: '/default',
+        children: [
+            {
+                path: '/default',
+                name: 'default',
+                component: () => import("../components/Uncommon/default.vue"),
+                // meta: { qss: false },
+                props: true
+            },
+        ]
     },
-    
+
     {
         path: '/login',
         name: 'login',
@@ -29,7 +37,7 @@ const route = [
         component: () => import("../components/View/personalView.vue"),
         // meta: { qss: false },
         props: true,
-        children:[
+        children: [
             {
                 path: '/basic',
                 name: 'basic',
@@ -54,28 +62,42 @@ const router = createRouter({
     routes: route
 })
 
-const InitRouteLength:number = route.length
+const InitRouteLength: number = router.getRoutes().length
 
+function getRouter() {
+    return exRequest.get({
+        url: RouterAPI.GetRouter,
+        data: ''
+    })
+}
+// .then(
+//     res => {
+//         return res.data.result;
+//     }
+// ).catch(
+//     err => {
+//         console.log('axios-err', err)
+//     }
+// )
 
 router.beforeEach(async (to, from) => {
     const token: string | null = localStorage.getItem('token')
     if (to.path !== '/login' && !token) {
-
         return '/login'
     } else if (to.path !== '/login' && token) {
+        console.log('5运行了', router.getRoutes().length, InitRouteLength)
         if (router.getRoutes().length <= InitRouteLength) {
-
-            const routerData: [] = await getRouter(
-                ''
-            ).then(
-                res => {
-                    return res.data.result;
-                }
-            ).catch(
-                err => {
-                    console.log('axios-err', err)
-                }
-            )
+            const Data: any = await getRouter()
+            // .then(
+            //     res => {
+            //         return res.data.result;
+            //     }
+            // ).catch(
+            //     err => {
+            //         console.log('axios-err', err)
+            //     }
+            // )
+            const routerData: [] = Data.result
             console.log(routerData)
             routerData.forEach((v: any) => {
                 const routerArr: RouteRecordRaw = {
@@ -93,7 +115,7 @@ router.beforeEach(async (to, from) => {
                 router.addRoute('home', routerArr)
             });
 
-            router.getRoutes().filter(v => v.name == 'home')[0].redirect = "/order"
+            // router.getRoutes().filter(v => v.name == 'home')[0].redirect = "/order"
             router.replace(to.path)
             // next({ ...to, replace: true })
 
